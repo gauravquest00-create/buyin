@@ -27,11 +27,19 @@ function extractToken(req, cookieName) {
 function assertCsrfIfCookieMutating(req, csrfCookieName) {
   const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
   if (safeMethods.has(req.method)) return;
+
   const cookieCsrf = req.cookies?.[csrfCookieName];
   const headerCsrf = req.headers['x-csrf-token'];
-  if (!cookieCsrf || !headerCsrf || cookieCsrf !== headerCsrf) {
-    throw new ForbiddenError('CSRF token validation failed', 'CSRF_VALIDATION_FAILED');
+  if (cookieCsrf && headerCsrf && cookieCsrf === headerCsrf) {
+    return;
   }
+
+  const origin = String(req.headers.origin || '').replace(/\/$/, '');
+  if (origin && env.allowedOrigins.includes(origin)) {
+    return;
+  }
+
+  throw new ForbiddenError('CSRF token validation failed', 'CSRF_VALIDATION_FAILED');
 }
 
 /**
