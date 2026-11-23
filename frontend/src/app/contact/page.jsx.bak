@@ -1,0 +1,14 @@
+import { ContactForm } from '../../components/ContactForm.jsx';
+import styles from '../../styles/site.module.css';
+export const metadata = { title: 'Contact BUYIN' };
+export default function ContactPage() {
+  return (
+    <section className={styles.section}>
+      <div className={styles.container} style={{ maxWidth: 720 }}>
+        <h1 className={styles.sectionTitle}>Contact BUYIN</h1>
+        <p className={styles.sectionSub}>Questions about agency onboarding, verification, or buyer requirement partnerships? Reach out below.</p>
+        <ContactForm />
+      </div>
+    </section>
+  );
+}

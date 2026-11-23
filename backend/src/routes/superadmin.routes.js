@@ -1,0 +1,44 @@
+import { Router } from 'express';
+import authRouter from '../super-admin/authentication/router.js';
+import adminManagementRouter from '../super-admin/admin-management/router.js';
+import dashboardRouter from '../super-admin/dashboard/router.js';
+import userManagementRouter from '../super-admin/user-management/router.js';
+import verificationManagementRouter from '../super-admin/verification-management/router.js';
+import leadPoolManagementRouter from '../super-admin/lead-pool-management/router.js';
+import leadManagementRouter from '../super-admin/lead-management/router.js';
+import claimManagementRouter from '../super-admin/claim-management/router.js';
+import walletManagementRouter from '../super-admin/wallet-management/router.js';
+import pricingManagementRouter from '../super-admin/pricing-management/router.js';
+import paymentManagementRouter from '../super-admin/payment-management/router.js';
+import refundManagementRouter from '../super-admin/refund-management/router.js';
+import categoryManagementRouter from '../super-admin/category-management/router.js';
+import notificationManagementRouter from '../super-admin/notification-management/router.js';
+import supportManagementRouter from '../super-admin/support-management/router.js';
+import reportsAnalyticsRouter from '../super-admin/reports-analytics/router.js';
+import rolesPermissionsRouter from '../super-admin/roles-permissions/router.js';
+import systemSettingsRouter from '../super-admin/system-settings/router.js';
+import auditLogsRouter from '../super-admin/audit-logs/router.js';
+
+const router = Router();
+
+router.use('/auth', authRouter);
+router.use('/admins', adminManagementRouter);
+router.use('/dashboard', dashboardRouter);
+router.use('/users', userManagementRouter);
+router.use('/verifications', verificationManagementRouter);
+router.use('/lead-pool', leadPoolManagementRouter);
+router.use('/leads', leadManagementRouter);
+router.use('/claims', claimManagementRouter);
+router.use('/wallets', walletManagementRouter);
+router.use('/pricing', pricingManagementRouter);
+router.use('/payments', paymentManagementRouter);
+router.use('/refunds', refundManagementRouter);
+router.use('/categories', categoryManagementRouter);
+router.use('/notifications', notificationManagementRouter);
+router.use('/support', supportManagementRouter);
+router.use('/reports', reportsAnalyticsRouter);
+router.use('/roles', rolesPermissionsRouter);
+router.use('/settings', systemSettingsRouter);
+router.use('/audit-logs', auditLogsRouter);
+
+export default router;

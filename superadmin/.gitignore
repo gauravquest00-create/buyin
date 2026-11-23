@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment & Secrets (NEVER commit real keys)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build Outputs (Next.js, Vite, Backend)
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local Uploads & Temp Files
+uploads/
+tmp/
+temp/
+*.zip
+
+# Editor & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini

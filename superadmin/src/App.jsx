@@ -1,0 +1,70 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import { AdminShell } from './components/AdminShell.jsx';
+import { AdminLoginPage } from './pages/AdminLoginPage.jsx';
+import { DashboardAnalyticsPage } from './pages/DashboardAnalyticsPage.jsx';
+import { ReportsAnalyticsPage } from './pages/ReportsAnalyticsPage.jsx';
+import { UserManagementPage } from './pages/UserManagementPage.jsx';
+import { UserDetailPage } from './pages/UserDetailPage.jsx';
+import { VerificationManagementPage } from './pages/VerificationManagementPage.jsx';
+import { LeadPoolManagementPage } from './pages/LeadPoolManagementPage.jsx';
+import { LeadManagementPage } from './pages/LeadManagementPage.jsx';
+import { LeadDetailPage } from './pages/LeadDetailPage.jsx';
+import { ClaimManagementPage } from './pages/ClaimManagementPage.jsx';
+import { CategoryManagementPage } from './pages/CategoryManagementPage.jsx';
+import { WalletManagementPage } from './pages/WalletManagementPage.jsx';
+import { PricingEnginePage } from './pages/PricingEnginePage.jsx';
+import { PaymentManagementPage } from './pages/PaymentManagementPage.jsx';
+import { RefundManagementPage } from './pages/RefundManagementPage.jsx';
+import { NotificationManagementPage } from './pages/NotificationManagementPage.jsx';
+import { SupportManagementPage } from './pages/SupportManagementPage.jsx';
+import { RolesPermissionsPage } from './pages/RolesPermissionsPage.jsx';
+import { SystemSettingsAuditPage } from './pages/SystemSettingsAuditPage.jsx';
+
+function ProtectedAdmin() {
+  const { admin, loading } = useAdminAuth();
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Verifying Admin Session...</div>;
+  if (!admin) return <Navigate to="/login" replace />;
+  return (
+    <AdminShell>
+      <Routes>
+        <Route path="/" element={<DashboardAnalyticsPage />} />
+        <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/users/:userId" element={<UserDetailPage />} />
+        <Route path="/verifications" element={<VerificationManagementPage />} />
+        <Route path="/lead-pool" element={<LeadPoolManagementPage />} />
+        <Route path="/leads" element={<LeadManagementPage />} />
+        <Route path="/leads/:leadId" element={<LeadDetailPage />} />
+        <Route path="/claims" element={<ClaimManagementPage />} />
+        <Route path="/wallets" element={<WalletManagementPage />} />
+        <Route path="/pricing" element={<PricingEnginePage />} />
+        <Route path="/payments" element={<PaymentManagementPage />} />
+        <Route path="/refunds" element={<RefundManagementPage />} />
+        <Route path="/categories" element={<CategoryManagementPage />} />
+        <Route path="/notifications" element={<NotificationManagementPage />} />
+        <Route path="/support" element={<SupportManagementPage />} />
+        <Route path="/reports" element={<ReportsAnalyticsPage />} />
+        <Route path="/roles" element={<RolesPermissionsPage />} />
+        <Route path="/settings-audit" element={<SystemSettingsAuditPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AdminShell>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AdminAuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<AdminLoginPage />} />
+            <Route path="/*" element={<ProtectedAdmin />} />
+          </Routes>
+        </BrowserRouter>
+      </AdminAuthProvider>
+    </ToastProvider>
+  );
+}

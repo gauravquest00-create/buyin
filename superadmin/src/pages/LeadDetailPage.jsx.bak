@@ -1,0 +1,225 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Save } from 'lucide-react';
+import { adminApi } from '../services/apiClient.js';
+import { useToast } from '../context/ToastContext.jsx';
+
+const POOL_STATES = ['DRAFT', 'AVAILABLE', 'CLAIMED', 'REVIEW_HOLD', 'CLOSED', 'LEAD_BIN', 'ARCHIVED'];
+const LEAD_STATUSES = [
+  'Claimed', 'Contacted', 'Interested', 'Follow-up',
+  'Site Visit Scheduled', 'Site Visited', 'Negotiation', 'Closed', 'Lost', 'Cancelled',
+];
+
+export function LeadDetailPage() {
+  const { leadId } = useParams();
+  const { showToast } = useToast();
+  const [data, setData] = useState(null);
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const loadDetail = useCallback(async () => {
+    try {
+      const res = await adminApi.get(`/leads/${leadId}`);
+      setData(res.data);
+      const l = res.data.lead;
+      setForm({
+        title: l.title || '',
+        requirementSummary: l.requirementSummary || '',
+        buyerName: l.buyerName || '',
+        buyerPhone: l.buyerPhone || '',
+        buyerEmail: l.buyerEmail || '',
+        buyerNotes: l.buyerNotes || '',
+        city: l.city || '',
+        location: l.location || '',
+        configuration: l.configuration || '',
+        budgetBand: l.budgetBand,
+        propertyType: l.propertyType,
+        purchaseTimeline: l.purchaseTimeline,
+        seriousnessScore: l.seriousnessScore ?? 75,
+        siteVisitStatus: l.siteVisitStatus || 'None',
+        poolState: l.poolState,
+        currentLeadStatus: l.currentLeadStatus || '',
+        lastRemarkSummary: l.lastRemarkSummary || '',
+        returnedDiscountApproved: Boolean(l.returnedDiscountApproved),
+      });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }, [leadId, showToast]);
+
+  useEffect(() => {
+    loadDetail();
+  }, [loadDetail]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await adminApi.patch(`/leads/${leadId}`, {
+        ...form,
+        currentLeadStatus: form.currentLeadStatus || null,
+      });
+      showToast('Lead details & status updated');
+      loadDetail();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!data || !form) return <div className="card">Loading lead details...</div>;
+  const { lead, claims, statusHistory, followUps, siteVisits } = data;
+
+  return (
+    <>
+      <div className="header-row">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to="/leads" className="btn btn-secondary btn-sm"><ArrowLeft size={15} /> Back to Leads</Link>
+          <div>
+            <h1>{lead.leadCode} — {lead.title}</h1>
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Computed Cost: <strong>{lead.computedClaimPoints} pts</strong> • Created {new Date(lead.createdAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <span className="badge badge-blue">Pool: {lead.poolState}</span>
+          {lead.currentLeadStatus && <span className="badge badge-amber">Status: {lead.currentLeadStatus}</span>}
+        </div>
+      </div>
+
+      {/* Edit Details & Status Form */}
+      <form className="card" onSubmit={handleSave}>
+        <div className="header-row" style={{ marginBottom: 14 }}>
+          <h3>Edit Lead Details & Status</h3>
+          <button className="btn btn-primary" type="submit" disabled={saving}>
+            <Save size={15} /> {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+
+        <div className="grid-2">
+          <div className="form-group">
+            <label className="form-label">Pool State</label>
+            <select className="select" value={form.poolState} onChange={(e) => setForm({ ...form, poolState: e.target.value })}>
+              {POOL_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Lead Lifecycle Status</label>
+            <select className="select" value={form.currentLeadStatus} onChange={(e) => setForm({ ...form, currentLeadStatus: e.target.value })}>
+              <option value="">Unassigned</option>
+              {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="form-group"><label className="form-label">Title</label><input className="input" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">Configuration</label><input className="input" value={form.configuration} onChange={(e) => setForm({ ...form, configuration: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">Buyer Name (Private)</label><input className="input" required value={form.buyerName} onChange={(e) => setForm({ ...form, buyerName: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">Buyer Phone (Private)</label><input className="input" required value={form.buyerPhone} onChange={(e) => setForm({ ...form, buyerPhone: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">Buyer Email</label><input className="input" type="email" value={form.buyerEmail} onChange={(e) => setForm({ ...form, buyerEmail: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">City</label><input className="input" required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+          <div className="form-group"><label className="form-label">Location</label><input className="input" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
+          <div className="form-group">
+            <label className="form-label">Budget Band</label>
+            <select className="select" value={form.budgetBand} onChange={(e) => setForm({ ...form, budgetBand: e.target.value })}>
+              <option value="BELOW_50L">Below ₹50L</option><option value="50L_1CR">₹50L–₹1Cr</option>
+              <option value="1CR_2CR">₹1Cr–₹2Cr</option><option value="2CR_5CR">₹2Cr–₹5Cr</option>
+              <option value="5CR_10CR">₹5Cr–₹10Cr</option><option value="10CR_PLUS">₹10Cr+</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Property Type</label>
+            <select className="select" value={form.propertyType} onChange={(e) => setForm({ ...form, propertyType: e.target.value })}>
+              <option>Apartment</option><option>Builder Floor</option><option>Residential Plot</option>
+              <option>Independent House</option><option>Villa/Luxury</option><option>Commercial</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Site Visit Status</label>
+            <select className="select" value={form.siteVisitStatus} onChange={(e) => setForm({ ...form, siteVisitStatus: e.target.value })}>
+              <option>None</option><option>Requested</option><option>Scheduled</option>
+              <option>Completed & Verified</option><option>Multiple Verified Visits</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-group"><label className="form-label">Requirement Summary</label><textarea className="textarea" rows={3} required value={form.requirementSummary} onChange={(e) => setForm({ ...form, requirementSummary: e.target.value })} /></div>
+        <div className="form-group"><label className="form-label">Last Remark Summary</label><input className="input" value={form.lastRemarkSummary} onChange={(e) => setForm({ ...form, lastRemarkSummary: e.target.value })} /></div>
+      </form>
+
+      {/* Active Owner & Pricing Snapshot */}
+      <div className="grid-2">
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Current Ownership</h3>
+          {lead.activeOwnerId ? (
+            <div style={{ fontSize: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div><strong>Owner:</strong> {lead.activeOwnerId.fullName} ({lead.activeOwnerId.email})</div>
+              <div><strong>Agency:</strong> {lead.activeOwnerId.agencyName || '-'}</div>
+              <div><strong>Claim Code:</strong> {lead.activeClaimId?.claimCode}</div>
+              <div><strong>Expires:</strong> {lead.ownershipExpiresAt ? new Date(lead.ownershipExpiresAt).toLocaleString() : '-'}</div>
+            </div>
+          ) : (
+            <p style={{ color: 'var(--muted)', fontSize: 14 }}>No active owner currently assigned.</p>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Pricing Snapshot</h3>
+          <div style={{ fontSize: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div>Base Points: <strong>{lead.pricingSnapshot?.basePoints ?? 0}</strong></div>
+            <div>Property Addition: <strong>+{lead.pricingSnapshot?.propertyAddition ?? 0}</strong></div>
+            <div>Buyer Signals: <strong>+{lead.pricingSnapshot?.signalTotal ?? 0}</strong></div>
+            <div>Site Visit Premium: <strong>+{lead.pricingSnapshot?.siteVisitPremium ?? 0}</strong></div>
+            <div>Returned Discount: <strong>-{lead.pricingSnapshot?.discountPoints ?? 0} ({lead.pricingSnapshot?.discountPercent ?? 0}%)</strong></div>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6 }}>Final Claim Cost: <strong>{lead.computedClaimPoints} pts</strong></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Claims & Status History */}
+      <div className="grid-2">
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Claim History ({claims.length})</h3>
+          {claims.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>No claims yet.</p> : claims.map((c) => (
+            <div key={c._id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              <strong>{c.claimCode}</strong> — {c.userId?.fullName} ({c.originalClaimPoints} pts) • <span className="badge badge-blue">{c.status}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Status History ({statusHistory.length})</h3>
+          {statusHistory.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>No status updates yet.</p> : statusHistory.map((h) => (
+            <div key={h._id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              <strong>{h.previousStatus || 'New'} → {h.newStatus}</strong> by {h.userId?.fullName || 'Admin'}
+              <div style={{ color: 'var(--muted)' }}>{h.remark} • {new Date(h.createdAt).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Follow-ups & Site Visits */}
+      <div className="grid-2">
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Follow-Ups ({followUps.length})</h3>
+          {followUps.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>No follow-ups recorded.</p> : followUps.map((f) => (
+            <div key={f._id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              <strong>{f.channel}</strong> — {f.note}
+              <div style={{ color: 'var(--muted)' }}>{new Date(f.createdAt).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: 10 }}>Site Visits ({siteVisits.length})</h3>
+          {siteVisits.length === 0 ? <p style={{ color: 'var(--muted)', fontSize: 13 }}>No site visits scheduled.</p> : siteVisits.map((v) => (
+            <div key={v._id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              <strong>{v.status}</strong> — {v.propertyAddress}
+              <div style={{ color: 'var(--muted)' }}>{new Date(v.scheduledAt).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}

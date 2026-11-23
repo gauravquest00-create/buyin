@@ -1,0 +1,16 @@
+import React from 'react';
+
+export function Modal({ open, title, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <button className="btn btn-secondary btn-sm" onClick={onClose} type="button">Close</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
