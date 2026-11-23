@@ -1,79 +1,58 @@
-# BUYIN — Real Estate Buyer Requirement & Lead Network
+# BUYIN - Real Estate Buyer Requirement & Lead Network
 
-BUYIN is a centralized, production-grade real-estate buyer requirement and lead-sharing platform architected as **four independent applications** backed by **one centralized Express.js + MongoDB Atlas API**.
+BUYIN is a controlled real-estate buyer requirement network built for verified real-estate professionals. Unlike traditional property listing portals or shared lead marketplaces, BUYIN enforces atomic single-owner claiming, masked pre-claim buyer privacy, transparent point-based wallet billing, and fair admin-reviewed refund protection.
 
-## System Architecture (4 Independent Applications)
+---
 
-| Application | Folder | Tech Stack | Local Port | Production Example |
-| :--- | :--- | :--- | :--- | :--- |
-| **Public Brand Website** | `frontend/` | Next.js 14, React, Vanilla CSS / CSS Modules | `3000` | `https://www.your-domain.com` |
-| **User Dashboard** | `dashboard/` | React 18, Vite, Vanilla CSS | `3001` | `https://app.your-domain.com` |
-| **Super Admin Console** | `superadmin/` | React 18, Vite, Vanilla CSS | `3002` | `https://admin.your-domain.com` |
-| **Centralized Backend API** | `backend/` | Node.js (ESM), Express, Mongoose, Zod, Razorpay, Fast2SMS, Cloudinary, BullMQ | `5000` | `https://api.your-domain.com` |
+## Architecture Overview
 
-## Key Platform Capabilities
-- **Strict User vs. Super Admin Separation**: Distinct API prefixes (`/api/v1/user/*` vs `/api/v1/superadmin/*`), distinct JWT signing secrets & audiences, separate session collections (`user_sessions` vs `admin_sessions`), HTTP-only cookies + CSRF double-submit verification, Argon2id password hashing, TOTP RFC 6238 MFA for Super Admin, and granular RBAC permissions.
-- **Atomic Single-Owner Lead Claiming**: MongoDB multi-document transactions + conditional updates + partial unique index on `claims({ leadId })` guarantee only one active owner per requirement.
-- **20-Day Ownership + 7-Day Extension**: 20-day default ownership, extendable once by 7 days at 25% of original claim points with duplicate-charge protection.
-- **Configurable Pricing Engine**: Budget band base points + property type additions + buyer signals + site visit premiums + admin-approved returned-lead discounts. Every claim stores an immutable pricing snapshot.
-- **Razorpay Wallet Recharge**: Server-side order creation, Checkout signature verification, raw-body HMAC-SHA256 webhook verification, idempotent wallet credits, and immutable ledger (`wallet_transactions`).
-- **95% Refund System**: Places claimed lead in protective `REVIEW_HOLD`, deducts 5%, credits 95% (rounded to nearest whole point) exactly once upon admin approval, and routes lead to `LEAD_BIN`, `RETURN_TO_POOL`, or `PERMANENTLY_CLOSE`.
-- **Automated Background Jobs**: BullMQ + Redis (with in-process fallback when `REDIS_URL` is omitted in dev) for 20-day claim expiry, eligible lead pool return, follow-up reminders, and payment reconciliation.
+BUYIN is structured as a modular monorepo containing four independent applications backed by a centralized REST API:
 
-## Prerequisites
-- **Node.js** `>= 18.18.0` (Node 20 LTS recommended)
-- **MongoDB Atlas** (or local MongoDB replica set for full multi-document transactions)
-- **Redis** (optional in dev; recommended for BullMQ in production)
-- Accounts/keys for **Razorpay** (test mode first), **Fast2SMS**, and **Cloudinary**
+| Application | Folder | Description |
+| :--- | :--- | :--- |
+| **Backend API** | `backend/` | Centralized Node.js + Express + MongoDB API serving public, user, and isolated admin namespaces |
+| **Public Website** | `frontend/` | Next.js App Router marketing and onboarding website (12 SEO-ready pages, zero admin links) |
+| **User Dashboard** | `dashboard/` | React + Vite workspace for verified real-estate professionals (Lead Pool, My Leads CRM, Wallet, Support) |
+| **Super Admin Console** | `superadmin/` | Isolated React + Vite administrative console for verifications, lead pool control, pricing, refunds, and audits |
 
-## Quick Installation
+---
 
-### Windows (`cmd.exe`)
-```cmd
-scripts\install-all.bat
-```
+## Core Platform Features
 
-### Linux / macOS
-```bash
-chmod +x scripts/*.sh
-./scripts/install-all.sh
-```
+### Exclusive Buyer Requirement Claiming
+- **Single Active Owner:** Atomic database transactions and unique active-claim locking ensure only one verified professional owns a buyer requirement at any time.
+- **Masked Pre-Claim Privacy:** Buyer name, mobile number, and email remain masked in the Lead Pool until a claim is confirmed.
+- **20-Day Ownership + 7-Day Extension:** Every claimed requirement grants 20 days of exclusive access, with an optional one-time +7-day extension at 25% of the original claim points.
+- **Lifecycle Hygiene:** Unclosed expired requirements return cleanly to the pool while preserving status history, follow-ups, and site-visit logs. Closed deals archive permanently with zero brokerage split.
 
-## Environment Configuration
-Copy each `.env.example` file and fill in your credentials (never commit `.env` files):
-1. `backend/.env.example` → `backend/.env`
-2. `dashboard/.env.example` → `dashboard/.env`
-3. `superadmin/.env.example` → `superadmin/.env`
-4. `frontend/.env.example` → `frontend/.env.local`
+### Transparent Wallet & Refund Protection
+- **Pay-As-You-Go Points:** Preset recharge packages with optional bonus tiers plus custom recharge support via Razorpay Checkout and server-side webhook verification.
+- **Upfront Balance Previews:** Professionals see their exact current balance, deduction, and expected remaining balance before confirming any claim or extension.
+- **95% Invalid-Lead Refund Shield:** Evidence-backed refund requests place claims on `REVIEW_HOLD` (pausing expiry) and credit 95% of original claim points (5% platform deduction) upon admin approval.
+- **Immutable Ledger:** Every credit, debit, bonus, and refund is logged permanently and exportable to CSV.
 
-> **Important**: `JWT_SECRET` and `ADMIN_JWT_SECRET` in `backend/.env` **must be different** (minimum 32 characters in production). Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` to bootstrap your initial Super Admin automatically on first backend startup.
+### Security & Governance
+- **Strict Role Isolation:** Separate authentication middleware, JWT secrets, audiences, and session stores for Users and Super Admins.
+- **Account Protection:** Strong password hashing, HTTP-only cookies, CSRF protection, active session management, and TOTP MFA support for administrators.
+- **Private Document Storage:** KYC documents and refund evidence are stored in private authenticated cloud storage and never exposed via open public URLs.
 
-## Local Startup
+---
 
-### 1. Optional Sample Data Seed (cities + sample buyer requirements)
-```bash
-cd backend && npm run seed
-```
+## Tech Stack
 
-### 2. Start All 4 Applications Independently
-- **Windows**: `scripts\dev-all.bat`
-- **Linux / macOS**: `./scripts/dev-all.sh`
-- **Manual** (4 terminals):
-  - `cd backend && npm run dev` → `http://localhost:5000/api/v1/health` & Swagger at `http://localhost:5000/api/v1/docs`
-  - `cd frontend && npm run dev` → `http://localhost:3000`
-  - `cd dashboard && npm run dev` → `http://localhost:3001`
-  - `cd superadmin && npm run dev` → `http://localhost:3002`
+- **Backend:** Node.js (ES Modules), Express.js, MongoDB & Mongoose, Zod Validation, Razorpay, Cloudinary, Fast2SMS, OpenAPI/Swagger
+- **Public Website:** Next.js 14 (App Router), React 18, Vanilla CSS & CSS Modules
+- **User Dashboard & Super Admin:** React 18, Vite, React Router, Lucide Icons, Vanilla CSS
 
-## Testing
-```bash
-cd backend
-npm run lint:syntax   # Validates ES Module syntax across all backend JS files
-npm test              # Runs pure business-logic, pricing, refund, HMAC, OTP, MFA, RBAC tests
-npm run test:e2e      # Runs full HTTP + MongoDB E2E test suite (requires MONGODB_URI)
-```
+---
 
-## Production Build
-- **Windows**: `scripts\build-all.bat`
-- **Linux / macOS**: `./scripts/build-all.sh`
+## Repository Structure
 
-See `DEPLOYMENT.md`, `DATABASE.md`, and `API_DOCS.md` for full operational and deployment documentation.
+```text
+BUYIN/
+├── backend/          # Express API, MongoDB models, business logic, background jobs, tests
+├── frontend/         # Next.js public brand & onboarding website
+├── dashboard/        # React + Vite authenticated professional dashboard
+├── superadmin/       # React + Vite isolated super admin console
+├── .gitignore        # Root ignore rules (excludes .env, node_modules, build artifacts)
+└── README.md
